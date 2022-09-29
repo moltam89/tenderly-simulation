@@ -13,6 +13,11 @@ const OPTS = {
 }
 
 export default function TenderlySimulation( {params} ) {
+	const [simulated, setSimulated] = useState(false);
+	const [simulationFailed, setSimulationFailed] = useState(false);
+	const [simulationUnexpectedError, setSimulationUnexpectedError] = useState(false);
+	const [simulationId, setSimulationId] = useState();
+
 	useEffect(()=> {
 		const simulateTransaction = async () => {
 			try {
@@ -32,10 +37,16 @@ export default function TenderlySimulation( {params} ) {
 
 				const resp = await axios.post(SIMULATE_URL, body, OPTS);
 
-				console.log("resp.data.simulation.id", resp.data.simulation.id)
+				if (resp.data.simulation.status === false) {
+					setSimulationFailed(true);
+				}
+
+				setSimulationId(resp.data.simulation.id);
+				setSimulated(true);
 			}
 			catch(error) {
 				console.error("simulateTransaction", error)
+				setSimulationUnexpectedError(true);
 			}
 		}
 		
@@ -43,8 +54,10 @@ export default function TenderlySimulation( {params} ) {
 	},[]);
 
 	return (
-		<div>
-			Tenderly Simulation Skeleton {params.chainId}
-		</div>
+		<div style={{ textAlign: "center"}}>
+          {!simulated && !simulationUnexpectedError && <>Simulating on Tenderly... </>}
+          {simulated && simulationId && <>Simulating on <a target="_blank" rel="noopener noreferrer" href={`https://dashboard.tenderly.co/${TENDERLY_USER}/${TENDERLY_PROJECT}/simulator/${simulationId}`}>Tenderly</a> {!simulationFailed ? "was successful!" : "has failed!"}</>}
+          {simulationUnexpectedError && <>Couldn't simulate on <a target="_blank" rel="noopener noreferrer" href="https://tenderly.co/">Tenderly</a> because of an unexpected error.</>}
+       </div>
 	);  
 }
